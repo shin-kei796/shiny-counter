@@ -25,8 +25,8 @@ body{
 
 button{
   font-size:18px;
-  padding:10px 16px;
-  margin:5px;
+  padding:10px 14px;
+  margin:4px;
   border:none;
   border-radius:8px;
   cursor:pointer;
@@ -37,12 +37,26 @@ button{
 .gold{background:gold;}
 .small{font-size:14px;padding:6px 10px;}
 
-.pokemon-item{
+.item{
   padding:10px;
   margin-bottom:8px;
   background:#fafafa;
   border-radius:8px;
   border:1px solid #ddd;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.nameArea{
+  text-align:left;
+  flex:1;
+}
+
+.moveBtn{
+  font-size:20px;
+  padding:6px 10px;
+  background:#eee;
 }
 </style>
 </head>
@@ -53,21 +67,19 @@ button{
 <div id="app"></div>
 
 <script>
-/* ===== データ読み込み ===== */
-
 let saved = JSON.parse(localStorage.getItem("shinyData") || "{}");
 
 let data  = saved.data  || {};
 let order = saved.order || Object.keys(data);
-let sortMode = "manual"; // manual | name | countDesc | countAsc
+let sortMode = "manual";
 
 function save(){
   localStorage.setItem("shinyData",
-    JSON.stringify({data, order})
+    JSON.stringify({data,order})
   );
 }
 
-/* ===== 一覧表示 ===== */
+/* ===== 一覧 ===== */
 
 function renderList(){
 
@@ -77,16 +89,15 @@ function renderList(){
 
     並び替え：
     <select onchange="changeSort(this.value)">
-      <option value="manual" ${sortMode==="manual"?"selected":""}>自由並び替え</option>
-      <option value="name" ${sortMode==="name"?"selected":""}>名前順</option>
-      <option value="countDesc" ${sortMode==="countDesc"?"selected":""}>回数が多い順</option>
-      <option value="countAsc" ${sortMode==="countAsc"?"selected":""}>回数が少ない順</option>
+      <option value="manual">自由並び替え</option>
+      <option value="name">名前順</option>
+      <option value="countDesc">回数が多い順</option>
+      <option value="countAsc">回数が少ない順</option>
     </select>
-
-    <div id="pokemonList">
+    <br><br>
   `;
 
-  let list = [...order].filter(n => data[n]);
+  let list=[...order].filter(n=>data[n]);
 
   if(sortMode==="name")
     list.sort((a,b)=>a.localeCompare(b,'ja'));
@@ -97,38 +108,72 @@ function renderList(){
   if(sortMode==="countAsc")
     list.sort((a,b)=>data[a].count-data[b].count);
 
-  list.forEach(name=>{
-    html += `
-    <div class="pokemon-item"
-         draggable="${sortMode==='manual'}"
-         data-name="${name}">
-      <b>${name}</b>（${data[name].count}回）<br>
-      <button class="small primary" onclick="openCounter('${name}')">開く</button>
-      <button class="small danger" onclick="deletePokemon('${name}')">削除</button>
+  list.forEach((name,i)=>{
+    html+=`
+    <div class="item">
+
+      <button class="moveBtn"
+              onclick="toggleMove('${name}')">≡</button>
+
+      <div class="nameArea">
+        <b>${name}</b>（${data[name].count}回）<br>
+        <button class="small primary"
+                onclick="openCounter('${name}')">開く</button>
+        <button class="small danger"
+                onclick="deletePokemon('${name}')">削除</button>
+      </div>
+
+      <div id="move-${name}" style="display:none">
+        <button class="small" onclick="moveUp('${name}')">▲</button>
+        <button class="small" onclick="moveDown('${name}')">▼</button>
+      </div>
+
     </div>`;
   });
 
-  html += `
-    </div>
-    <button class="primary" onclick="addPokemon()">＋ 新しいポケモンを追加</button>
+  html+=`
+    <button class="primary" onclick="addPokemon()">＋ 新しいポケモン</button>
   </div>`;
 
-  document.getElementById("app").innerHTML = html;
-
-  if(sortMode==="manual") enableDrag();
+  document.getElementById("app").innerHTML=html;
 }
 
-/* ===== 並び替え変更 ===== */
+/* ===== 並び替えモード ===== */
 
-function changeSort(mode){
-  sortMode = mode;
+function changeSort(m){
+  sortMode=m;
   renderList();
+}
+
+/* ===== 移動UI ===== */
+
+function toggleMove(name){
+  const el=document.getElementById("move-"+name);
+  el.style.display = el.style.display==="none" ? "block":"none";
+}
+
+function moveUp(name){
+  let i=order.indexOf(name);
+  if(i>0){
+    [order[i-1],order[i]]=[order[i],order[i-1]];
+    save();
+    renderList();
+  }
+}
+
+function moveDown(name){
+  let i=order.indexOf(name);
+  if(i<order.length-1){
+    [order[i+1],order[i]]=[order[i],order[i+1]];
+    save();
+    renderList();
+  }
 }
 
 /* ===== 追加・削除 ===== */
 
 function addPokemon(){
-  const name = prompt("ポケモン名を入力");
+  const name=prompt("ポケモン名を入力");
   if(!name) return;
 
   if(data[name]){
@@ -136,7 +181,7 @@ function addPokemon(){
     return;
   }
 
-  data[name] = {count:0};
+  data[name]={count:0};
   order.push(name);
 
   save();
@@ -147,16 +192,16 @@ function deletePokemon(name){
   if(!confirm(name+" を削除しますか？")) return;
 
   delete data[name];
-  order = order.filter(n=>n!==name);
+  order=order.filter(n=>n!==name);
 
   save();
   renderList();
 }
 
-/* ===== カウンター画面 ===== */
+/* ===== カウンター ===== */
 
 function openCounter(name){
-  document.getElementById("app").innerHTML = `
+  document.getElementById("app").innerHTML=`
   <div class="card">
     <h2>${name}</h2>
     <h1 id="count">${data[name].count}</h1>
@@ -166,14 +211,16 @@ function openCounter(name){
     <button onclick="reset('${name}')">リセット</button>
 
     <br><br>
-    <button class="gold" onclick="shiny('${name}')">✨ 色違い出現！</button>
+    <button class="gold" onclick="shiny('${name}')">
+      ✨ 色違い出現！
+    </button>
     <br><br>
     <button onclick="renderList()">← 一覧へ戻る</button>
   </div>`;
 }
 
-function update(name){
-  document.getElementById("count").innerText = data[name].count;
+function update(n){
+  document.getElementById("count").innerText=data[n].count;
   save();
 }
 
@@ -186,47 +233,6 @@ function shiny(name){
   data[name].count=0;
   update(name);
 }
-
-/* ===== ドラッグ並び替え ===== */
-
-function enableDrag(){
-
-  const items=document.querySelectorAll(".pokemon-item");
-  const list=document.getElementById("pokemonList");
-
-  let dragged;
-
-  items.forEach(item=>{
-
-    item.addEventListener("dragstart",()=>{
-      dragged=item;
-      item.style.opacity=.5;
-    });
-
-    item.addEventListener("dragend",()=>{
-      item.style.opacity="";
-      updateOrder();
-    });
-
-    item.addEventListener("dragover",e=>e.preventDefault());
-
-    item.addEventListener("drop",e=>{
-      e.preventDefault();
-      if(dragged!==item){
-        list.insertBefore(dragged,item.nextSibling);
-      }
-    });
-
-  });
-}
-
-function updateOrder(){
-  const items=document.querySelectorAll(".pokemon-item");
-  order=[...items].map(i=>i.dataset.name);
-  save();
-}
-
-/* ===== 初期表示 ===== */
 
 renderList();
 </script>
