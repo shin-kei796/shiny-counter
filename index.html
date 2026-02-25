@@ -3,170 +3,233 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
-<title>ポケモン色違い厳選カウンター｜遭遇回数記録ツール（無料・スマホ対応）</title>
-
-<meta name="description"
-content="ポケモンの色違い厳選用遭遇回数カウンター。スマホ・PC対応、無料、インストール不要。ブラウザだけで使えるシンプルで高速な色違いカウンターです。">
-
-<meta name="keywords"
-content="ポケモン,色違い,厳選,カウンター,遭遇回数,シャイニー,shiny,pokemon">
-
-<meta name="google-site-verification"
-content="q1GtneFiIZqfr8OtihJJri707FvNWZKo4Te-57uYoVM" />
+<title>ポケモン色違い厳選カウンター</title>
 
 <style>
-body {
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  text-align: center;
-  margin: 0;
-  padding: 20px;
-  background: #f5f7fa;
+body{
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+  text-align:center;
+  background:#f5f7fa;
+  margin:0;
+  padding:20px;
 }
 
-h1 {
-  margin-bottom: 10px;
+.card{
+  background:#fff;
+  padding:15px;
+  margin:auto;
+  max-width:520px;
+  border-radius:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
 }
 
-.description {
-  max-width: 600px;
-  margin: 0 auto 20px auto;
-  font-size: 14px;
-  color: #444;
-  line-height: 1.6;
+button{
+  font-size:18px;
+  padding:10px 16px;
+  margin:5px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
 }
 
-.card {
-  background: white;
-  padding: 15px;
-  margin: 10px auto;
-  max-width: 500px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+.primary{background:#4CAF50;color:#fff;}
+.danger{background:#f44336;color:#fff;}
+.gold{background:gold;}
+.small{font-size:14px;padding:6px 10px;}
+
+.pokemon-item{
+  padding:10px;
+  margin-bottom:8px;
+  background:#fafafa;
+  border-radius:8px;
+  border:1px solid #ddd;
 }
-
-button {
-  font-size: 18px;
-  padding: 10px 16px;
-  margin: 5px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-}
-
-.primary { background: #4CAF50; color: white; }
-.danger { background: #f44336; color: white; }
-.gold { background: gold; }
-
-.small { font-size: 14px; padding: 6px 10px; }
 </style>
 </head>
 
 <body>
 
 <h1>ポケモン色違い厳選カウンター</h1>
-
-<div class="description">
-このサイトは、ポケモンの色違い厳選時に遭遇回数を記録するための無料カウンターです。<br>
-スマホ・PC両対応、インストール不要、ブラウザだけで使用できます。<br><br>
-✔ 遭遇回数を＋1 / −1で記録<br>
-✔ 複数ポケモン管理<br>
-✔ 色違い出現時に回数表示<br>
-✔ データは端末に自動保存
-</div>
-
 <div id="app"></div>
 
 <script>
-let data = JSON.parse(localStorage.getItem("shinyData") || "{}");
+/* ===== データ読み込み ===== */
 
-function save() {
-  localStorage.setItem("shinyData", JSON.stringify(data));
+let saved = JSON.parse(localStorage.getItem("shinyData") || "{}");
+
+let data  = saved.data  || {};
+let order = saved.order || Object.keys(data);
+let sortMode = "manual"; // manual | name | countDesc | countAsc
+
+function save(){
+  localStorage.setItem("shinyData",
+    JSON.stringify({data, order})
+  );
 }
 
-function renderList() {
-  let html = '<div class="card"><h2>ポケモン一覧</h2>';
-  for (let name in data) {
-    html += `
-      <div>
-        ${name}
-        <button class="small primary" onclick="openCounter('${name}')">開く</button>
-        <button class="small danger" onclick="deletePokemon('${name}')">削除</button>
-      </div>
-      <hr>
-    `;
-  }
-  html += `
-    <button class="primary" onclick="addPokemon()">＋ 新しいポケモンを追加</button>
-    </div>
+/* ===== 一覧表示 ===== */
+
+function renderList(){
+
+  let html = `
+  <div class="card">
+    <h2>ポケモン一覧</h2>
+
+    並び替え：
+    <select onchange="changeSort(this.value)">
+      <option value="manual" ${sortMode==="manual"?"selected":""}>自由並び替え</option>
+      <option value="name" ${sortMode==="name"?"selected":""}>名前順</option>
+      <option value="countDesc" ${sortMode==="countDesc"?"selected":""}>回数が多い順</option>
+      <option value="countAsc" ${sortMode==="countAsc"?"selected":""}>回数が少ない順</option>
+    </select>
+
+    <div id="pokemonList">
   `;
+
+  let list = [...order].filter(n => data[n]);
+
+  if(sortMode==="name")
+    list.sort((a,b)=>a.localeCompare(b,'ja'));
+
+  if(sortMode==="countDesc")
+    list.sort((a,b)=>data[b].count-data[a].count);
+
+  if(sortMode==="countAsc")
+    list.sort((a,b)=>data[a].count-data[b].count);
+
+  list.forEach(name=>{
+    html += `
+    <div class="pokemon-item"
+         draggable="${sortMode==='manual'}"
+         data-name="${name}">
+      <b>${name}</b>（${data[name].count}回）<br>
+      <button class="small primary" onclick="openCounter('${name}')">開く</button>
+      <button class="small danger" onclick="deletePokemon('${name}')">削除</button>
+    </div>`;
+  });
+
+  html += `
+    </div>
+    <button class="primary" onclick="addPokemon()">＋ 新しいポケモンを追加</button>
+  </div>`;
+
   document.getElementById("app").innerHTML = html;
+
+  if(sortMode==="manual") enableDrag();
 }
 
-function addPokemon() {
-  const name = prompt("ポケモン名を入力してください");
-  if (!name) return;
-  if (data[name]) {
-    alert("そのポケモンは既に登録されています。");
+/* ===== 並び替え変更 ===== */
+
+function changeSort(mode){
+  sortMode = mode;
+  renderList();
+}
+
+/* ===== 追加・削除 ===== */
+
+function addPokemon(){
+  const name = prompt("ポケモン名を入力");
+  if(!name) return;
+
+  if(data[name]){
+    alert("既に登録されています");
     return;
   }
+
   data[name] = {count:0};
+  order.push(name);
+
   save();
   renderList();
 }
 
-function deletePokemon(name) {
-  if (!confirm(name + " を削除しますか？")) return;
+function deletePokemon(name){
+  if(!confirm(name+" を削除しますか？")) return;
+
   delete data[name];
+  order = order.filter(n=>n!==name);
+
   save();
   renderList();
 }
 
-function openCounter(name) {
+/* ===== カウンター画面 ===== */
+
+function openCounter(name){
   document.getElementById("app").innerHTML = `
-    <div class="card">
-      <h2>${name}</h2>
-      <h1 id="count">${data[name].count}</h1>
+  <div class="card">
+    <h2>${name}</h2>
+    <h1 id="count">${data[name].count}</h1>
 
-      <button class="primary" onclick="inc('${name}')">+1</button>
-      <button onclick="dec('${name}')">-1</button>
-      <button onclick="reset('${name}')">リセット</button>
+    <button class="primary" onclick="inc('${name}')">+1</button>
+    <button onclick="dec('${name}')">-1</button>
+    <button onclick="reset('${name}')">リセット</button>
 
-      <br><br>
-      <button class="gold" onclick="shiny('${name}')">✨ 色違い出現！</button>
-      <br><br>
-      <button onclick="renderList()">← 一覧へ戻る</button>
-    </div>
-  `;
+    <br><br>
+    <button class="gold" onclick="shiny('${name}')">✨ 色違い出現！</button>
+    <br><br>
+    <button onclick="renderList()">← 一覧へ戻る</button>
+  </div>`;
 }
 
-function update(name) {
+function update(name){
   document.getElementById("count").innerText = data[name].count;
   save();
 }
 
-function inc(name){ data[name].count++; update(name); }
-function dec(name){ data[name].count = Math.max(0,data[name].count-1); update(name); }
-function reset(name){ data[name].count = 0; update(name); }
+function inc(n){data[n].count++;update(n);}
+function dec(n){data[n].count=Math.max(0,data[n].count-1);update(n);}
+function reset(n){data[n].count=0;update(n);}
 
 function shiny(name){
-  alert(name + " の色違いが " + data[name].count + " 回目で出現！");
-  data[name].count = 0;
+  alert(name+" の色違いが "+data[name].count+" 回目で出現！");
+  data[name].count=0;
   update(name);
 }
 
+/* ===== ドラッグ並び替え ===== */
+
+function enableDrag(){
+
+  const items=document.querySelectorAll(".pokemon-item");
+  const list=document.getElementById("pokemonList");
+
+  let dragged;
+
+  items.forEach(item=>{
+
+    item.addEventListener("dragstart",()=>{
+      dragged=item;
+      item.style.opacity=.5;
+    });
+
+    item.addEventListener("dragend",()=>{
+      item.style.opacity="";
+      updateOrder();
+    });
+
+    item.addEventListener("dragover",e=>e.preventDefault());
+
+    item.addEventListener("drop",e=>{
+      e.preventDefault();
+      if(dragged!==item){
+        list.insertBefore(dragged,item.nextSibling);
+      }
+    });
+
+  });
+}
+
+function updateOrder(){
+  const items=document.querySelectorAll(".pokemon-item");
+  order=[...items].map(i=>i.dataset.name);
+  save();
+}
+
+/* ===== 初期表示 ===== */
+
 renderList();
 </script>
-
-<div class="description">
-<h2>使い方</h2>
-ポケモン名を追加し、遭遇するたびに「+1」を押してください。<br>
-色違いが出現したら「色違い出現！」を押すと回数が表示されリセットされます。<br><br>
-
-<h2>注意事項</h2>
-データはお使いのブラウザ内に保存されます。<br>
-別の端末では共有されませんのでご注意ください。
-</div>
 
 </body>
 </html>
