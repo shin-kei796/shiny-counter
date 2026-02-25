@@ -2,23 +2,82 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="google-site-verification" content="q1GtneFiIZqfr8OtihJJri707FvNWZKo4Te-57uYoVM" />
-<title>ポケモン 色違い 厳選 カウンター</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>ポケモン色違い厳選カウンター｜遭遇回数記録ツール（無料・スマホ対応）</title>
+
+<meta name="description"
+content="ポケモンの色違い厳選用遭遇回数カウンター。スマホ・PC対応、無料、インストール不要。ブラウザだけで使えるシンプルで高速な色違いカウンターです。">
+
+<meta name="keywords"
+content="ポケモン,色違い,厳選,カウンター,遭遇回数,シャイニー,shiny,pokemon">
+
+<meta name="google-site-verification"
+content="q1GtneFiIZqfr8OtihJJri707FvNWZKo4Te-57uYoVM" />
+
 <style>
-body { font-family: sans-serif; text-align:center; }
-button { font-size:18px; margin:5px; padding:10px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  text-align: center;
+  margin: 0;
+  padding: 20px;
+  background: #f5f7fa;
+}
+
+h1 {
+  margin-bottom: 10px;
+}
+
+.description {
+  max-width: 600px;
+  margin: 0 auto 20px auto;
+  font-size: 14px;
+  color: #444;
+  line-height: 1.6;
+}
+
+.card {
+  background: white;
+  padding: 15px;
+  margin: 10px auto;
+  max-width: 500px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+button {
+  font-size: 18px;
+  padding: 10px 16px;
+  margin: 5px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.primary { background: #4CAF50; color: white; }
+.danger { background: #f44336; color: white; }
+.gold { background: gold; }
+
+.small { font-size: 14px; padding: 6px 10px; }
 </style>
 </head>
 
 <body>
 
-<h1>色違いカウンター</h1>
+<h1>ポケモン色違い厳選カウンター</h1>
 
-<div id="list"></div>
-<button onclick="addPokemon()">＋ 新しいポケモン</button>
+<div class="description">
+このサイトは、ポケモンの色違い厳選時に遭遇回数を記録するための無料カウンターです。<br>
+スマホ・PC両対応、インストール不要、ブラウザだけで使用できます。<br><br>
+✔ 遭遇回数を＋1 / −1で記録<br>
+✔ 複数ポケモン管理<br>
+✔ 色違い出現時に回数表示<br>
+✔ データは端末に自動保存
+</div>
+
+<div id="app"></div>
 
 <script>
-
 let data = JSON.parse(localStorage.getItem("shinyData") || "{}");
 
 function save() {
@@ -26,45 +85,58 @@ function save() {
 }
 
 function renderList() {
-  let html = "";
+  let html = '<div class="card"><h2>ポケモン一覧</h2>';
   for (let name in data) {
     html += `
       <div>
         ${name}
-        <button onclick="openCounter('${name}')">開く</button>
-        <button onclick="deletePokemon('${name}')">削除</button>
-      </div>`;
+        <button class="small primary" onclick="openCounter('${name}')">開く</button>
+        <button class="small danger" onclick="deletePokemon('${name}')">削除</button>
+      </div>
+      <hr>
+    `;
   }
-  document.getElementById("list").innerHTML = html;
+  html += `
+    <button class="primary" onclick="addPokemon()">＋ 新しいポケモンを追加</button>
+    </div>
+  `;
+  document.getElementById("app").innerHTML = html;
 }
 
 function addPokemon() {
-  const name = prompt("ポケモン名");
+  const name = prompt("ポケモン名を入力してください");
   if (!name) return;
+  if (data[name]) {
+    alert("そのポケモンは既に登録されています。");
+    return;
+  }
   data[name] = {count:0};
   save();
   renderList();
 }
 
 function deletePokemon(name) {
+  if (!confirm(name + " を削除しますか？")) return;
   delete data[name];
   save();
   renderList();
 }
 
 function openCounter(name) {
-  document.body.innerHTML = `
-    <h2>${name}</h2>
-    <h1 id="count">${data[name].count}</h1>
+  document.getElementById("app").innerHTML = `
+    <div class="card">
+      <h2>${name}</h2>
+      <h1 id="count">${data[name].count}</h1>
 
-    <button onclick="inc('${name}')">+1</button>
-    <button onclick="dec('${name}')">-1</button>
-    <button onclick="reset('${name}')">リセット</button>
+      <button class="primary" onclick="inc('${name}')">+1</button>
+      <button onclick="dec('${name}')">-1</button>
+      <button onclick="reset('${name}')">リセット</button>
 
-    <br><br>
-    <button onclick="shiny('${name}')">✨ 色違い出現！</button>
-    <br><br>
-    <button onclick="location.reload()">←戻る</button>
+      <br><br>
+      <button class="gold" onclick="shiny('${name}')">✨ 色違い出現！</button>
+      <br><br>
+      <button onclick="renderList()">← 一覧へ戻る</button>
+    </div>
   `;
 }
 
@@ -84,7 +156,17 @@ function shiny(name){
 }
 
 renderList();
-
 </script>
+
+<div class="description">
+<h2>使い方</h2>
+ポケモン名を追加し、遭遇するたびに「+1」を押してください。<br>
+色違いが出現したら「色違い出現！」を押すと回数が表示されリセットされます。<br><br>
+
+<h2>注意事項</h2>
+データはお使いのブラウザ内に保存されます。<br>
+別の端末では共有されませんのでご注意ください。
+</div>
+
 </body>
 </html>
