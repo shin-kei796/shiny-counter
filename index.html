@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>色違いカウンター</title>
+<style>
+body { font-family: sans-serif; text-align:center; }
+button { font-size:18px; margin:5px; padding:10px; }
+</style>
+</head>
+
+<body>
+
+<h1>色違いカウンター</h1>
+
+<div id="list"></div>
+<button onclick="addPokemon()">＋ 新しいポケモン</button>
+
+<script>
+
+let data = JSON.parse(localStorage.getItem("shinyData") || "{}");
+
+function save() {
+  localStorage.setItem("shinyData", JSON.stringify(data));
+}
+
+function renderList() {
+  let html = "";
+  for (let name in data) {
+    html += `
+      <div>
+        ${name}
+        <button onclick="openCounter('${name}')">開く</button>
+        <button onclick="deletePokemon('${name}')">削除</button>
+      </div>`;
+  }
+  document.getElementById("list").innerHTML = html;
+}
+
+function addPokemon() {
+  const name = prompt("ポケモン名");
+  if (!name) return;
+  data[name] = {count:0};
+  save();
+  renderList();
+}
+
+function deletePokemon(name) {
+  delete data[name];
+  save();
+  renderList();
+}
+
+function openCounter(name) {
+  document.body.innerHTML = `
+    <h2>${name}</h2>
+    <h1 id="count">${data[name].count}</h1>
+
+    <button onclick="inc('${name}')">+1</button>
+    <button onclick="dec('${name}')">-1</button>
+    <button onclick="reset('${name}')">リセット</button>
+
+    <br><br>
+    <button onclick="shiny('${name}')">✨ 色違い出現！</button>
+    <br><br>
+    <button onclick="location.reload()">←戻る</button>
+  `;
+}
+
+function update(name) {
+  document.getElementById("count").innerText = data[name].count;
+  save();
+}
+
+function inc(name){ data[name].count++; update(name); }
+function dec(name){ data[name].count = Math.max(0,data[name].count-1); update(name); }
+function reset(name){ data[name].count = 0; update(name); }
+
+function shiny(name){
+  alert(name + " の色違いが " + data[name].count + " 回目で出現！");
+  data[name].count = 0;
+  update(name);
+}
+
+renderList();
+
+</script>
+</body>
+</html>
